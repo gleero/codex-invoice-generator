@@ -1,5 +1,9 @@
 # Invoice Generator for Codex
 
+[![CI](https://github.com/gleero/codex-invoice-generator/actions/workflows/ci.yml/badge.svg)](https://github.com/gleero/codex-invoice-generator/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/gleero/codex-invoice-generator/actions/workflows/codeql.yml/badge.svg)](https://github.com/gleero/codex-invoice-generator/actions/workflows/codeql.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Навык для Codex, который сам создаёт одностраничные PDF-инвойсы, хранит реквизиты клиентов в Markdown и ведёт отдельную нумерацию для каждой компании.
 
 Код навыка и ваши документы хранятся раздельно:
@@ -16,15 +20,15 @@
 - macOS, Linux или Windows;
 - [Python 3.11 или новее](https://www.python.org/downloads/);
 - Codex desktop, Codex CLI или расширение Codex;
-- ссылка на этот GitHub-репозиторий.
+- доступ к [GitHub-репозиторию](https://github.com/gleero/codex-invoice-generator).
 
 ## Установка: macOS или Linux
 
-Откройте Terminal и выполните две команды. Вместо `<REPOSITORY_URL>` вставьте ссылку на опубликованный репозиторий, например `https://github.com/username/invoice-generator.git`.
+Откройте Terminal и выполните две команды:
 
 ```bash
 mkdir -p "$HOME/.agents/skills"
-git clone <REPOSITORY_URL> "$HOME/.agents/skills/invoice-generator"
+git clone https://github.com/gleero/codex-invoice-generator.git "$HOME/.agents/skills/invoice-generator"
 ```
 
 Полностью перезапустите Codex. Персональные навыки из `$HOME/.agents/skills` поддерживаются официально; если новый навык не появился сразу, документация рекомендует перезапуск. [OpenAI Codex Skills](https://developers.openai.com/codex/skills)
@@ -33,7 +37,7 @@ git clone <REPOSITORY_URL> "$HOME/.agents/skills/invoice-generator"
 
 ```powershell
 New-Item -ItemType Directory -Force "$HOME\.agents\skills" | Out-Null
-git clone <REPOSITORY_URL> "$HOME\.agents\skills\invoice-generator"
+git clone https://github.com/gleero/codex-invoice-generator.git "$HOME\.agents\skills\invoice-generator"
 ```
 
 После клонирования полностью перезапустите Codex.
@@ -213,6 +217,19 @@ npm run lint:md
 ```
 
 Локальные reference PDF можно проверить через `scripts/compare_references.py`; они намеренно исключены из Git.
+
+### Версионирование
+
+Версия хранится в `pyproject.toml` и синхронно обновляется в Python-модуле и npm metadata:
+
+```bash
+.venv/bin/bump-my-version show current_version
+.venv/bin/bump-my-version bump patch
+.venv/bin/bump-my-version bump minor
+.venv/bin/bump-my-version bump major
+```
+
+Команда изменяет файлы, но намеренно не создаёт commit или Git tag. Перед релизом проверьте diff, запустите тесты и отдельно создайте commit/tag.
 
 ## Лицензия
 

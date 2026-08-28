@@ -3,4 +3,4 @@
 from .models import InvoiceError
 
 __all__ = ["InvoiceError"]
-__version__ = "2.0.0"
+__version__ = "1.0.0"

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "codex-invoice-generator"
-version = "2.0.0"
+version = "1.0.0"
 description = "Portable Codex skill and CLI for deterministic client invoices"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -12,7 +12,7 @@ license = "MIT"
 license-files = ["LICENSE"]
 authors = [{name = "Invoice Generator contributors"}]
 classifiers = [
-  "Development Status :: 4 - Beta",
+  "Development Status :: 5 - Production/Stable",
   "Environment :: Console",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.11",
@@ -27,9 +27,15 @@ dependencies = [
   "reportlab==4.4.3",
 ]
 
+[project.urls]
+Homepage = "https://github.com/gleero/codex-invoice-generator"
+Repository = "https://github.com/gleero/codex-invoice-generator.git"
+Issues = "https://github.com/gleero/codex-invoice-generator/issues"
+
 [project.optional-dependencies]
 dev = [
   "build==1.3.0",
+  "bump-my-version==1.5.1",
   "pre-commit==4.3.0",
   "pyright==1.1.405",
   "pytest==8.4.1",
@@ -94,3 +100,26 @@ exclude = [".venv", "tmp"]
 reportMissingTypeStubs = false
 reportUnknownMemberType = false
 reportUnknownVariableType = false
+
+[tool.bumpversion]
+current_version = "1.0.0"
+parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
+serialize = ["{major}.{minor}.{patch}"]
+commit = false
+tag = false
+allow_dirty = false
+
+[[tool.bumpversion.files]]
+filename = "invoice_generator/__init__.py"
+search = '__version__ = "{current_version}"'
+replace = '__version__ = "{new_version}"'
+
+[[tool.bumpversion.files]]
+filename = "package.json"
+search = '"version": "{current_version}"'
+replace = '"version": "{new_version}"'
+
+[[tool.bumpversion.files]]
+filename = "package-lock.json"
+search = '"version": "{current_version}"'
+replace = '"version": "{new_version}"'

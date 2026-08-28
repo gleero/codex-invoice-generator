@@ -15,3 +15,5 @@ Keep these invariants:
 - new clients require an explicit alias and first invoice number.
 
 Add focused tests for behavior changes. Do not update reference PDFs unless the visual change is intentional and explained.
+
+Use `bump-my-version bump patch|minor|major` for releases. Version bumps update all configured metadata but do not create commits or tags automatically.
