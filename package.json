@@ -1,6 +1,6 @@
 {
   "name": "invoice-generator-quality",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Markdown quality tools for Invoice Generator",
   "scripts": {

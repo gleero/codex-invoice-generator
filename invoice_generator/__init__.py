@@ -8,4 +8,4 @@ from .models import InvoiceError
 __all__ = ["InvoiceError"]
 __author__ = "Vladimir Perekladov"
 __email__ = "gleero@gmail.com"
-__version__ = "1.0.0"
+__version__ = "1.0.1"
