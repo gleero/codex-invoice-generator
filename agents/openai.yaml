@@ -1,0 +1,7 @@
+interface:
+  display_name: "Invoice Generator"
+  short_description: "Create and track polished client invoices"
+  brand_color: "#31394D"
+  default_prompt: "Use $invoice-generator to issue a client invoice in this workspace."
+policy:
+  allow_implicit_invocation: true

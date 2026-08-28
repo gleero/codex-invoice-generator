@@ -1,0 +1,2 @@
+# Convenience runtime requirements. The bootstrap launcher uses requirements.lock.
+-r requirements.lock

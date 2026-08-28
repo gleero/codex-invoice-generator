@@ -1,0 +1,26 @@
+.DS_Store
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+coverage.xml
+dist/
+build/
+package-smoke/
+node_modules/
+
+# Private operational data and generated artifacts.
+data/
+output/
+tmp/
+sources/*.pdf
+
+# Local lock files.
+*.lock
+!requirements.lock
+!requirements-dev.lock

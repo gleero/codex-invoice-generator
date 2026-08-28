@@ -1,0 +1,12 @@
+{
+  "name": "invoice-generator-quality",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Markdown quality tools for Invoice Generator",
+  "scripts": {
+    "lint:md": "markdownlint-cli2 \"**/*.md\""
+  },
+  "devDependencies": {
+    "markdownlint-cli2": "0.23.2"
+  }
+}

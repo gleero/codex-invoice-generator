@@ -1,0 +1,11 @@
+{
+  "ignores": [
+    ".venv/**",
+    "node_modules/**",
+    "data/**",
+    "output/**",
+    "tmp/**",
+    "sources/**",
+    "assets/fonts/**"
+  ]
+}

@@ -1,0 +1,23 @@
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: ruff check
+        language: system
+        types: [python]
+      - id: ruff-format
+        name: ruff format check
+        entry: ruff format --check
+        language: system
+        types: [python]
+      - id: skill-validator
+        name: invoice skill validator
+        entry: python scripts/validate_skill.py .
+        language: system
+        pass_filenames: false
+      - id: pytest
+        name: focused test suite
+        entry: pytest -q
+        language: system
+        pass_filenames: false
