@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+"""Validate repository-specific Codex skill metadata and invariants.
+
+Created by Vladimir Perekladov <gleero@gmail.com>.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -12,7 +17,18 @@ import yaml
 FRONTMATTER = re.compile(r"\A---\s*\n(.*?)\n---(?:\s*\n|\Z)", re.DOTALL)
 
 
+def _pinned_requirements(path: Path) -> set[str]:
+    """Return normalized pinned requirement lines, excluding comments."""
+
+    return {
+        line.strip().casefold()
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    }
+
+
 def load_yaml(path: Path) -> dict[str, Any]:
+    """Load a YAML mapping with a path-specific validation error."""
     try:
         value = yaml.safe_load(path.read_text(encoding="utf-8"))
     except (OSError, yaml.YAMLError) as exc:
@@ -23,6 +39,7 @@ def load_yaml(path: Path) -> dict[str, Any]:
 
 
 def validate(root: Path) -> list[str]:
+    """Return all locally detectable skill packaging errors."""
     errors: list[str] = []
     skill_path = root / "SKILL.md"
     try:
@@ -81,10 +98,22 @@ def validate(root: Path) -> list[str]:
         for pattern in stale_patterns:
             if pattern in text:
                 errors.append(f"Stale installation or data path in {path.name}: {pattern}")
+
+    runtime_requirements = _pinned_requirements(root / "requirements.lock")
+    for name in ("requirements.txt", "requirements-dev.lock"):
+        path = root / name
+        requirements = _pinned_requirements(path)
+        nested = sorted(item for item in requirements if item.startswith(("-r ", "--requirement ")))
+        if nested:
+            errors.append(f"{name} must be flat for Dependabot: {', '.join(nested)}")
+        missing = sorted(runtime_requirements - requirements)
+        if missing:
+            errors.append(f"{name} is missing runtime pins: {', '.join(missing)}")
     return errors
 
 
 def main() -> int:
+    """Validate a skill root and print errors suitable for CI logs."""
     parser = argparse.ArgumentParser()
     parser.add_argument("root", type=Path, nargs="?", default=Path.cwd())
     args = parser.parse_args()

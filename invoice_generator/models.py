@@ -1,3 +1,8 @@
+"""Validate and normalize immutable invoice domain models.
+
+Created by Vladimir Perekladov <gleero@gmail.com>.
+"""
+
 from __future__ import annotations
 
 import re
@@ -26,16 +31,19 @@ CURRENCY_CODE_RE = re.compile(r"[A-Z][A-Z0-9]{2,7}")
 
 
 def normalize_dashes(value: str) -> str:
+    """Normalize typographic dash characters for predictable PDF output."""
     return value.translate(DASH_TRANSLATION)
 
 
 def _required_text(value: Any, field: str) -> str:
+    """Return a stripped, non-empty string or raise a field-specific error."""
     if not isinstance(value, str) or not value.strip():
         raise InvoiceError(f"Missing or empty field: {field}")
     return value.strip()
 
 
 def _text_list(value: Any, field: str, *, required: bool) -> tuple[str, ...]:
+    """Normalize a YAML list of text values into an immutable tuple."""
     if value is None and not required:
         return ()
     if not isinstance(value, list):
@@ -48,11 +56,14 @@ def _text_list(value: Any, field: str, *, required: bool) -> tuple[str, ...]:
 
 @dataclass(frozen=True)
 class PaymentRow:
+    """One labelled payment-instruction line displayed on an invoice."""
+
     label: str
     value: str
 
     @classmethod
     def from_mapping(cls, value: Any, field: str) -> PaymentRow:
+        """Build a payment row from validated YAML data."""
         if not isinstance(value, dict):
             raise InvoiceError(f"{field} must be a YAML mapping")
         return cls(
@@ -62,6 +73,7 @@ class PaymentRow:
 
 
 def _legacy_payment_rows(value: dict[str, Any], field: str) -> tuple[PaymentRow, ...] | None:
+    """Convert the original fixed bank schema into generic payment rows."""
     names = (
         "intermediary_bank",
         "intermediary_swift",
@@ -91,6 +103,8 @@ def _legacy_payment_rows(value: dict[str, Any], field: str) -> tuple[PaymentRow,
 
 @dataclass(frozen=True)
 class CurrencyProfile:
+    """Formatting and payment instructions for one accepted currency."""
+
     code: str
     minor_units: int
     decimal_separator: str
@@ -102,12 +116,14 @@ class CurrencyProfile:
 
     @classmethod
     def from_mapping(cls, code: str, value: Any, field: str) -> CurrencyProfile:
+        """Build a currency profile, applying USD/EUR display presets."""
         normalized_code = code.strip().upper()
         if not CURRENCY_CODE_RE.fullmatch(normalized_code):
             raise InvoiceError(f"Invalid currency code: {code}")
         if not isinstance(value, dict):
             raise InvoiceError(f"{field} must be a YAML mapping")
 
+        # USD and EUR preserve the reference invoice's historical formatting.
         preset = {
             "EUR": {"token": "€", "position": "after", "decimal": ",", "group": ".", "minor": 2},
             "USD": {"token": "$", "position": "before", "decimal": ",", "group": ".", "minor": 2},
@@ -163,6 +179,8 @@ class CurrencyProfile:
 
 @dataclass(frozen=True)
 class OwnerProfile:
+    """Invoice issuer identity and configured settlement currencies."""
+
     role: str
     name: str
     address: str
@@ -171,6 +189,7 @@ class OwnerProfile:
 
     @classmethod
     def from_mapping(cls, value: Any) -> OwnerProfile:
+        """Build and validate an owner profile from Markdown frontmatter."""
         if not isinstance(value, dict):
             raise InvoiceError("Owner frontmatter must be a YAML mapping")
         timezone = _required_text(value.get("timezone"), "timezone")
@@ -200,6 +219,8 @@ class OwnerProfile:
 
 @dataclass(frozen=True)
 class ClientProfile:
+    """A client's legal identity and immutable numbering configuration."""
+
     alias: str
     legal_name: str
     address_lines: tuple[str, ...]
@@ -208,6 +229,7 @@ class ClientProfile:
 
     @classmethod
     def from_mapping(cls, value: Any) -> ClientProfile:
+        """Build and validate a client profile from Markdown frontmatter."""
         if not isinstance(value, dict):
             raise InvoiceError("Client frontmatter must be a YAML mapping")
         alias = _required_text(value.get("alias"), "alias").upper()
@@ -227,6 +249,8 @@ class ClientProfile:
 
 @dataclass(frozen=True)
 class InvoiceRequest:
+    """Normalized inputs required to render and record one invoice."""
+
     client: ClientProfile
     amount: Decimal
     currency: str
@@ -245,6 +269,7 @@ class InvoiceRequest:
         issue_date: date,
         period: str | None = None,
     ) -> InvoiceRequest:
+        """Create a request with exact decimal and normalized text values."""
         try:
             decimal_amount = Decimal(str(amount))
         except (InvalidOperation, ValueError) as exc:

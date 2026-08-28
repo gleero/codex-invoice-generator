@@ -1,3 +1,8 @@
+"""Define the user-facing CLI for workspaces, profiles, and invoice issuance.
+
+Created by Vladimir Perekladov <gleero@gmail.com>.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -22,6 +27,7 @@ from .workspace import (
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build the complete argument parser without reading workspace state."""
     parser = argparse.ArgumentParser(prog="invoice", description="Generate and track client invoices")
     parser.add_argument("--workspace", type=Path, default=Path.cwd(), help="workspace containing data/ and output/")
     parser.add_argument("--version", action="version", version=__version__)
@@ -75,6 +81,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _print(value: Any, *, as_json: bool) -> None:
+    """Print a command result in stable JSON or human-readable form."""
     if as_json:
         print(json.dumps(value, ensure_ascii=False, sort_keys=True))
     elif isinstance(value, str):
@@ -84,10 +91,12 @@ def _print(value: Any, *, as_json: bool) -> None:
 
 
 def _require_workspace(workspace: Path) -> None:
+    """Reject commands that require an initialized workspace."""
     workspace_status(workspace)
 
 
 def run(args: argparse.Namespace) -> int:
+    """Execute one parsed CLI command and return its process exit code."""
     workspace = args.workspace.expanduser().resolve()
     if args.command == "workspace":
         if args.workspace_command == "probe":
@@ -181,6 +190,7 @@ def run(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Parse arguments, render actionable errors, and return an exit code."""
     parser = build_parser()
     try:
         return run(parser.parse_args(argv))

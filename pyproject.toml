@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
 license-files = ["LICENSE"]
-authors = [{name = "Invoice Generator contributors"}]
+authors = [{name = "Vladimir Perekladov", email = "gleero@gmail.com"}]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Environment :: Console",

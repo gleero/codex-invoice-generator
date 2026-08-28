@@ -1,3 +1,8 @@
+"""Read, validate, find, and create Markdown owner and client profiles.
+
+Created by Vladimir Perekladov <gleero@gmail.com>.
+"""
+
 from __future__ import annotations
 
 import re
@@ -35,6 +40,7 @@ PLACEHOLDER_MARKERS = ("YOUR ", "ADD AT LEAST", "REPLACE ")
 
 
 def read_frontmatter(path: Path) -> dict[str, Any]:
+    """Read a Markdown file's YAML frontmatter as a mapping."""
     try:
         text = path.read_text(encoding="utf-8")
     except FileNotFoundError as exc:
@@ -52,10 +58,12 @@ def read_frontmatter(path: Path) -> dict[str, Any]:
 
 
 def load_owner(workspace: Path) -> OwnerProfile:
+    """Load the owner profile from a workspace."""
     return OwnerProfile.from_mapping(read_frontmatter(workspace / "data" / "owner.md"))
 
 
 def validate_owner_complete(workspace: Path) -> OwnerProfile:
+    """Load the owner and reject unchanged setup placeholders."""
     owner = load_owner(workspace)
     values = [owner.role, owner.name, owner.address]
     for currency in owner.currencies.values():
@@ -68,6 +76,7 @@ def validate_owner_complete(workspace: Path) -> OwnerProfile:
 
 
 def load_clients(workspace: Path) -> list[ClientProfile]:
+    """Load all client profiles and enforce unique aliases and names."""
     clients_dir = workspace / "data" / "clients"
     if not clients_dir.exists():
         raise InvoiceError(f"Client directory not found: {clients_dir}")
@@ -82,6 +91,7 @@ def load_clients(workspace: Path) -> list[ClientProfile]:
 
 
 def find_client(workspace: Path, query: str) -> ClientProfile:
+    """Find one client by alias, exact legal name, or unique partial name."""
     normalized = query.strip().casefold()
     clients = load_clients(workspace)
     exact_alias = [client for client in clients if client.alias.casefold() == normalized]
@@ -100,6 +110,7 @@ def find_client(workspace: Path, query: str) -> ClientProfile:
 
 
 def _significant_words(name: str) -> list[str]:
+    """Return Latin name words excluding common legal suffixes."""
     camel_split = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", name)
     words = re.findall(r"[A-Za-z]+", camel_split)
     significant = [word for word in words if word.upper() not in LEGAL_SUFFIXES]
@@ -107,11 +118,13 @@ def _significant_words(name: str) -> list[str]:
 
 
 def generate_alias(name: str, used_aliases: Iterable[str]) -> str:
+    """Generate an unused two- or three-letter alias from a legal name."""
     used = {alias.upper() for alias in used_aliases}
     words = _significant_words(name)
     if not words:
         raise InvoiceError("Cannot generate an alias from a name without Latin letters")
 
+    # Prefer recognizable initials before falling back to letter combinations.
     candidates: list[str] = []
     if len(words) >= 2:
         candidates.extend(
@@ -139,6 +152,7 @@ def generate_alias(name: str, used_aliases: Iterable[str]) -> str:
 
 
 def suggest_alias(workspace: Path, legal_name: str) -> str:
+    """Suggest an unused client alias without modifying the workspace."""
     return generate_alias(legal_name, (client.alias for client in load_clients(workspace)))
 
 
@@ -151,6 +165,7 @@ def add_client(
     alias: str,
     first_invoice_number: int,
 ) -> ClientProfile:
+    """Persist a fully confirmed client profile without overwriting files."""
     existing = load_clients(workspace)
     client = ClientProfile.from_mapping(
         {

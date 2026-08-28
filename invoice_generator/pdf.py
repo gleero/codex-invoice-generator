@@ -1,3 +1,8 @@
+"""Render deterministic, validated, single-page A4 invoice PDFs.
+
+Created by Vladimir Perekladov <gleero@gmail.com>.
+"""
+
 from __future__ import annotations
 
 import re
@@ -30,6 +35,8 @@ BALANCE_GRAY = Color(0.942691, 0.942691, 0.942691)
 
 @dataclass(frozen=True)
 class FontSet:
+    """Registered PDF font names used by the calibrated invoice layout."""
+
     serif_bold: str
     sans: str
     unicode_sans: str
@@ -37,6 +44,7 @@ class FontSet:
 
 
 def register_fonts() -> FontSet:
+    """Register bundled fonts and return their stable ReportLab names."""
     font_dir = font_directory()
     required = {
         "InvoiceLiberationSerifBold": font_dir / "LiberationSerif-Bold.ttf",
@@ -59,6 +67,7 @@ def register_fonts() -> FontSet:
 
 
 def _font_for_text(text: str, primary: str, fallback: str) -> str:
+    """Choose a font that contains every non-whitespace character."""
     primary_font: Any = pdfmetrics.getFont(primary)
     face = primary_font.face
     cmap = getattr(face, "charToGlyph", {})
@@ -75,6 +84,7 @@ def _font_for_text(text: str, primary: str, fallback: str) -> str:
 
 
 def format_number(amount: Decimal, currency: CurrencyProfile) -> str:
+    """Format a decimal using the currency's precision and separators."""
     quantizer = Decimal(1).scaleb(-currency.minor_units)
     rounded = amount.quantize(quantizer)
     western = f"{rounded:,.{currency.minor_units}f}"
@@ -87,6 +97,7 @@ def format_number(amount: Decimal, currency: CurrencyProfile) -> str:
 
 
 def format_money(amount: Decimal, currency: CurrencyProfile) -> str:
+    """Format an amount with its configured currency token and spacing."""
     number = format_number(amount, currency)
     separator = " " if currency.space_between else ""
     if currency.token_position == "before":
@@ -95,10 +106,12 @@ def format_money(amount: Decimal, currency: CurrencyProfile) -> str:
 
 
 def _text_width(text: str, font: str, size: float) -> float:
+    """Measure text with the exact metrics used for PDF rendering."""
     return pdfmetrics.stringWidth(text, font, size)
 
 
 def _fit_single_line(text: str, font: str, start_size: float, min_size: float, max_width: float) -> float:
+    """Find the largest allowed size that keeps text on one line."""
     size = start_size
     while size >= min_size:
         if _text_width(text, font, size) <= max_width:
@@ -108,6 +121,7 @@ def _fit_single_line(text: str, font: str, start_size: float, min_size: float, m
 
 
 def _wrap_one(text: str, font: str, size: float, max_width: float) -> list[str] | None:
+    """Wrap one paragraph by words, returning ``None`` for unbreakable overflow."""
     words = text.split()
     if not words:
         return []
@@ -136,6 +150,7 @@ def _fit_wrapped(
     max_width: float,
     max_lines: int,
 ) -> tuple[float, list[str]]:
+    """Fit paragraphs into a bounded line count by reducing font size."""
     size = start_size
     while size >= min_size:
         lines: list[str] = []
@@ -154,11 +169,13 @@ def _fit_wrapped(
 
 
 def _set_font(canvas: Canvas, font: str, size: float, color=BLACK) -> None:
+    """Set font and fill color together for consistent drawing calls."""
     canvas.setFont(font, size)
     canvas.setFillColor(color)
 
 
 def _draw_right(canvas: Canvas, text: str, x: float, y: float) -> None:
+    """Draw text right-aligned to the supplied baseline coordinate."""
     canvas.drawRightString(x, y, text)
 
 
@@ -169,6 +186,7 @@ def render_invoice(
     invoice_id: str,
     output_path: Path,
 ) -> None:
+    """Render one invoice to ``output_path`` or fail before clipping content."""
     fonts = register_fonts()
     try:
         currency = owner.currencies[request.currency]
@@ -180,6 +198,7 @@ def render_invoice(
     money = format_money(request.amount, currency)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
+    # These coordinates are intentionally fixed: they reproduce the reference A4 grid.
     canvas = Canvas(str(output_path), pagesize=A4, pageCompression=1)
     canvas.setTitle(invoice_id)
     canvas.setAuthor(owner.name)
@@ -288,6 +307,7 @@ def render_invoice(
 
 
 def safe_company_directory(name: str) -> str:
+    """Convert a legal company name into a portable output directory name."""
     cleaned = re.sub(r"[\\/:*?\"<>|\x00-\x1f]", "_", name).strip(" .")
     cleaned = re.sub(r"\s+", " ", cleaned)
     if not cleaned:

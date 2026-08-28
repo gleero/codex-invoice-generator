@@ -1,2 +1,10 @@
-# Convenience runtime requirements. The bootstrap launcher uses requirements.lock.
--r requirements.lock
+# Convenience runtime requirements. Keep these pins synchronized with requirements.lock.
+# This file is intentionally flat so Dependabot can evaluate it in isolation.
+charset-normalizer==3.5.1
+filelock==3.19.1
+Pillow==11.3.0
+PyMuPDF==1.26.4
+PyYAML==6.0.2
+reportlab==4.4.3
+setuptools==80.9.0
+wheel==0.45.1

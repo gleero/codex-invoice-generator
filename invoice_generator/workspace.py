@@ -1,3 +1,8 @@
+"""Initialize invoice workspaces and maintain their non-sensitive state cache.
+
+Created by Vladimir Perekladov <gleero@gmail.com>.
+"""
+
 from __future__ import annotations
 
 import hashlib
@@ -29,6 +34,8 @@ output/
 
 @dataclass(frozen=True)
 class WorkspaceProbe:
+    """A dependency-light summary of workspace initialization state."""
+
     state: str
     marker_present: bool
     empty: bool
@@ -37,16 +44,19 @@ class WorkspaceProbe:
 
 
 def marker_path(workspace: Path) -> Path:
+    """Return the hidden marker path for a workspace."""
     return workspace / MARKER_NAME
 
 
 def _visible_entries(workspace: Path) -> tuple[str, ...]:
+    """List entries relevant to the non-empty-folder safety warning."""
     if not workspace.exists():
         return ()
     return tuple(sorted(item.name for item in workspace.iterdir() if item.name not in IGNORED_EMPTY_ENTRIES))
 
 
 def _read_marker(workspace: Path) -> dict[str, Any]:
+    """Load and structurally validate a workspace marker."""
     path = marker_path(workspace)
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
@@ -73,6 +83,7 @@ def _read_marker(workspace: Path) -> dict[str, Any]:
 
 
 def probe_workspace(workspace: Path) -> WorkspaceProbe:
+    """Inspect workspace state without creating or changing files."""
     workspace = workspace.expanduser().resolve()
     entries = _visible_entries(workspace)
     path = marker_path(workspace)
@@ -104,6 +115,7 @@ def probe_workspace(workspace: Path) -> WorkspaceProbe:
 
 
 def _sha256(path: Path) -> str | None:
+    """Return a file fingerprint, or ``None`` when the file is absent."""
     if not path.is_file():
         return None
     digest = hashlib.sha256()
@@ -114,6 +126,7 @@ def _sha256(path: Path) -> str | None:
 
 
 def _owner_status(workspace: Path) -> str:
+    """Return the cached readiness state for ``owner.md``."""
     owner_path = workspace / "data" / "owner.md"
     if not owner_path.is_file():
         return "missing"
@@ -127,6 +140,7 @@ def _owner_status(workspace: Path) -> str:
 
 
 def _ledger_status(workspace: Path) -> str:
+    """Return the cached readiness state for the invoice ledger."""
     ledger_path = workspace / "data" / "invoices.md"
     if not ledger_path.is_file():
         return "missing"
@@ -140,6 +154,7 @@ def _ledger_status(workspace: Path) -> str:
 
 
 def _client_fingerprints(workspace: Path) -> dict[str, str]:
+    """Fingerprint each client profile without storing its contents."""
     clients_dir = workspace / "data" / "clients"
     if not clients_dir.is_dir():
         return {}
@@ -151,6 +166,7 @@ def _client_fingerprints(workspace: Path) -> dict[str, str]:
 
 
 def _marker_payload(workspace: Path, *, workspace_id: str, created_at: str) -> dict[str, Any]:
+    """Build a privacy-safe marker payload from authoritative Markdown files."""
     clients_dir = workspace / "data" / "clients"
     client_count = len(list(clients_dir.glob("*.md"))) if clients_dir.is_dir() else 0
     now = datetime.now(UTC).isoformat()
@@ -175,6 +191,7 @@ def _marker_payload(workspace: Path, *, workspace_id: str, created_at: str) -> d
 
 
 def _atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
+    """Durably replace a JSON file without exposing a partial marker."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=path.parent, delete=False) as handle:
         temp_path = Path(handle.name)
@@ -189,6 +206,7 @@ def _atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
 
 
 def refresh_marker(workspace: Path) -> dict[str, Any]:
+    """Rebuild cached statuses and fingerprints while preserving identity."""
     workspace = workspace.expanduser().resolve()
     current = _read_marker(workspace)
     payload = _marker_payload(
@@ -206,6 +224,7 @@ def initialize_workspace(
     confirmed: bool,
     allow_nonempty: bool,
 ) -> dict[str, Any]:
+    """Create an idempotent workspace after explicit user confirmation."""
     workspace = workspace.expanduser().resolve()
     if not confirmed:
         raise InvoiceError("Initialization requires explicit confirmation (--confirmed)")
@@ -233,6 +252,7 @@ def initialize_workspace(
     if not gitignore.exists():
         gitignore.write_text(WORKSPACE_GITIGNORE, encoding="utf-8")
 
+    # The marker is written last so a failed setup never appears initialized.
     now = datetime.now(UTC).isoformat()
     payload = _marker_payload(workspace, workspace_id=str(uuid.uuid4()), created_at=now)
     _atomic_write_json(marker_path(workspace), payload)
@@ -240,6 +260,7 @@ def initialize_workspace(
 
 
 def repair_workspace(workspace: Path, *, confirmed: bool) -> dict[str, Any]:
+    """Back up a marker and rebuild it from Markdown after confirmation."""
     workspace = workspace.expanduser().resolve()
     if not confirmed:
         raise InvoiceError("Repair requires explicit confirmation (--confirmed)")
@@ -257,6 +278,7 @@ def repair_workspace(workspace: Path, *, confirmed: bool) -> dict[str, Any]:
 
 
 def workspace_status(workspace: Path, *, refresh: bool = False) -> dict[str, Any]:
+    """Return current state, revalidating only when fingerprints are stale."""
     workspace = workspace.expanduser().resolve()
     marker = refresh_marker(workspace) if refresh else _read_marker(workspace)
     current_owner_hash = _sha256(workspace / "data" / "owner.md")
@@ -269,10 +291,12 @@ def workspace_status(workspace: Path, *, refresh: bool = False) -> dict[str, Any
         or fingerprints.get("clients") != current_client_hashes
         or marker.get("skill_version") != __version__
     )
+    # Markdown is authoritative; the marker only avoids repeated full parsing.
     if stale:
         marker = refresh_marker(workspace)
     return marker
 
 
 def probe_as_dict(probe: WorkspaceProbe) -> dict[str, Any]:
+    """Convert a probe result into a JSON-serializable dictionary."""
     return asdict(probe)

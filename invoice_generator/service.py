@@ -1,3 +1,8 @@
+"""Coordinate numbering, PDF validation, and transactional invoice issuance.
+
+Created by Vladimir Perekladov <gleero@gmail.com>.
+"""
+
 from __future__ import annotations
 
 import os
@@ -25,14 +30,17 @@ LEDGER_HEADER = (
 
 
 def _escape_cell(value: str) -> str:
+    """Escape user text for a single Markdown table cell."""
     return value.replace("\\", "\\\\").replace("|", "\\|").replace("\n", " ").strip()
 
 
 def _ledger_path(workspace: Path) -> Path:
+    """Return the canonical invoice ledger path for a workspace."""
     return workspace / "data" / "invoices.md"
 
 
 def validate_ledger(path: Path) -> str:
+    """Read the ledger and verify its identifying table header."""
     try:
         text = path.read_text(encoding="utf-8")
     except FileNotFoundError as exc:
@@ -43,6 +51,7 @@ def validate_ledger(path: Path) -> str:
 
 
 def next_sequence(ledger_text: str, alias: str, first_invoice_number: int = 1) -> int:
+    """Return the next sequence for one alias, respecting its configured start."""
     matches = re.findall(rf"(?<![A-Z0-9]){re.escape(alias)}-(\d{{3,}})(?!\d)", ledger_text)
     next_after_ledger = max((int(value) for value in matches), default=0) + 1
     return max(first_invoice_number, next_after_ledger)
@@ -56,6 +65,7 @@ def validate_generated_pdf(
     owner: OwnerProfile | None = None,
     currency: str | None = None,
 ) -> None:
+    """Verify page count, geometry, required text, and renderability."""
     try:
         document = fitz.open(path)
     except Exception as exc:
@@ -87,6 +97,7 @@ def append_ledger(
     request: InvoiceRequest,
     relative_pdf: str,
 ) -> None:
+    """Append and durably flush one invoice row to the Markdown ledger."""
     row = (
         "| "
         + " | ".join(
@@ -111,9 +122,11 @@ def append_ledger(
 
 
 def issue_invoice(workspace: Path, request: InvoiceRequest) -> Path:
+    """Issue, validate, and record an invoice as one rollback-safe operation."""
     workspace = workspace.expanduser().resolve()
     ledger = _ledger_path(workspace)
     lock = FileLock(str(ledger) + ".lock", timeout=15)
+    # The ledger lock serializes number allocation across concurrent Codex runs.
     with lock:
         ledger_text = validate_ledger(ledger)
         sequence = next_sequence(
@@ -159,6 +172,7 @@ def issue_invoice(workspace: Path, request: InvoiceRequest) -> Path:
                 owner=owner,
                 currency=request.currency,
             )
+            # Publish only a verified PDF; roll it back if the durable ledger write fails.
             os.replace(temp_path, final_path)
             try:
                 relative_pdf = final_path.relative_to(workspace).as_posix()
@@ -183,11 +197,13 @@ def issue_invoice(workspace: Path, request: InvoiceRequest) -> Path:
 
 
 def default_issue_date(workspace: Path) -> date:
+    """Return today's date in the owner's configured timezone."""
     owner = validate_owner_complete(workspace)
     return datetime.now(ZoneInfo(owner.timezone)).date()
 
 
 def validate_repository(workspace: Path) -> tuple[int, int]:
+    """Validate all Markdown data and return client and invoice counts."""
     validate_owner_complete(workspace)
     clients = load_clients(workspace)
     ledger = validate_ledger(_ledger_path(workspace))

@@ -1,5 +1,13 @@
 # Install with: python -m pip install -r requirements-dev.lock
--r requirements.lock
+# Runtime pins are repeated intentionally so Dependabot can evaluate this file in isolation.
+charset-normalizer==3.5.1
+filelock==3.19.1
+Pillow==11.3.0
+PyMuPDF==1.26.4
+PyYAML==6.0.2
+reportlab==4.4.3
+setuptools==80.9.0
+wheel==0.45.1
 annotated-types==0.8.0
 anyio==4.14.2
 bracex==3.0.1

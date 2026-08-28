@@ -1,3 +1,8 @@
+"""Render local invoice fixtures and produce visual reference diffs.
+
+Created by Vladimir Perekladov <gleero@gmail.com>.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -37,6 +42,7 @@ FIXTURES = {
 
 
 def render_png(pdf_path: Path, png_path: Path) -> None:
+    """Rasterize the first PDF page at a stable 150 DPI."""
     document = fitz.open(pdf_path)
     try:
         page: Any = document[0]
@@ -47,6 +53,7 @@ def render_png(pdf_path: Path, png_path: Path) -> None:
 
 
 def main() -> int:
+    """Generate fixture invoices and contrast-enhanced PNG differences."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--workspace", type=Path, default=ROOT)
     args = parser.parse_args()

@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Dependency-free bootstrap launcher for the Invoice Generator skill."""
+"""Dependency-free bootstrap launcher for the Invoice Generator skill.
+
+Created by Vladimir Perekladov <gleero@gmail.com>.
+"""
 
 from __future__ import annotations
 
@@ -20,15 +23,18 @@ MIN_PYTHON = (3, 11)
 
 
 def _python() -> Path:
+    """Return the platform-specific Python executable in the private venv."""
     return VENV / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
 
 
 def _lockfile() -> Path:
+    """Return the preferred pinned runtime dependency manifest."""
     preferred = SKILL_ROOT / "requirements.lock"
     return preferred if preferred.is_file() else SKILL_ROOT / "requirements.txt"
 
 
 def runtime_fingerprint() -> str:
+    """Fingerprint all inputs that require rebuilding the private runtime."""
     digest = hashlib.sha256()
     for path in (SKILL_ROOT / "pyproject.toml", _lockfile(), Path(__file__)):
         digest.update(path.name.encode("utf-8"))
@@ -38,6 +44,7 @@ def runtime_fingerprint() -> str:
 
 
 def _read_state() -> dict[str, Any] | None:
+    """Read cached runtime state, treating malformed data as a cache miss."""
     try:
         value = json.loads(STATE.read_text(encoding="utf-8"))
     except (FileNotFoundError, json.JSONDecodeError, OSError):
@@ -46,6 +53,7 @@ def _read_state() -> dict[str, Any] | None:
 
 
 def _write_state(payload: dict[str, Any]) -> None:
+    """Atomically persist the private runtime cache."""
     STATE.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=STATE.parent, delete=False) as handle:
         temp = Path(handle.name)
@@ -60,6 +68,7 @@ def _write_state(payload: dict[str, Any]) -> None:
 
 
 def ensure_runtime() -> str:
+    """Create or refresh the skill's private environment and smoke-test it."""
     if sys.version_info < MIN_PYTHON:
         raise SystemExit(
             "Invoice Generator requires Python 3.11 or newer. Install it from https://www.python.org/downloads/ "
@@ -68,6 +77,7 @@ def ensure_runtime() -> str:
     fingerprint = runtime_fingerprint()
     state = _read_state()
     python = _python()
+    # A matching fingerprint avoids package installation on normal invoice requests.
     if python.is_file() and state and state.get("fingerprint") == fingerprint:
         return fingerprint
 
@@ -107,6 +117,7 @@ def ensure_runtime() -> str:
 
 
 def probe(argv: list[str]) -> int:
+    """Inspect a workspace without importing or installing dependencies."""
     parser = argparse.ArgumentParser(prog="invoice-bootstrap probe")
     parser.add_argument("--workspace", type=Path, default=Path.cwd())
     args = parser.parse_args(argv)
@@ -147,6 +158,7 @@ def probe(argv: list[str]) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run a dependency-free probe or delegate to the installed package CLI."""
     arguments = list(sys.argv[1:] if argv is None else argv)
     if arguments and arguments[0] == "probe":
         return probe(arguments[1:])
