@@ -4,7 +4,7 @@ charset-normalizer==3.5.1
 filelock==3.19.1
 Pillow==11.3.0
 PyMuPDF==1.26.4
-PyYAML==6.0.2
+PyYAML==6.0.3
 reportlab==4.4.3
 setuptools==80.9.0
 wheel==0.45.1
