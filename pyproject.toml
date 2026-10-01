@@ -20,7 +20,7 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
-  "filelock==3.19.1",
+  "filelock==4.0.5",
   "Pillow==11.3.0",
   "PyMuPDF==1.26.4",
   "PyYAML==6.0.2",
